@@ -83,6 +83,7 @@
             justify-content: center;
             gap: 15px;
             margin-top: 20px;
+            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
         }
 
         .game-button {
@@ -174,6 +175,7 @@
             <button id="startButton" class="game-button">התחילו את המסע!</button>
             <button id="runCodeButton" class="game-button hidden">הריצו קוד</button>
             <button id="getHintButton" class="game-button hidden">✨ קבלו רמז חכם</button>
+            <button id="checkMyCodeButton" class="game-button hidden">✨ בדוק את הקוד שלי</button>
             <button id="nextChallengeButton" class="game-button hidden">האתגר הבא</button>
             <button id="restartButton" class="game-button hidden">התחילו מחדש</button>
         </div>
@@ -187,7 +189,8 @@
         const feedbackMessage = document.getElementById('feedback-message');
         const startButton = document.getElementById('startButton');
         const runCodeButton = document.getElementById('runCodeButton');
-        const getHintButton = document.getElementById('getHintButton'); // New hint button
+        const getHintButton = document.getElementById('getHintButton');
+        const checkMyCodeButton = document.getElementById('checkMyCodeButton'); // New button
         const nextChallengeButton = document.getElementById('nextChallengeButton');
         const restartButton = document.getElementById('restartButton');
         const storySection = document.getElementById('story-section');
@@ -330,7 +333,8 @@
             challengeSection.classList.add('hidden');
             startButton.classList.remove('hidden');
             runCodeButton.classList.add('hidden');
-            getHintButton.classList.add('hidden'); // Hide hint button initially
+            getHintButton.classList.add('hidden');
+            checkMyCodeButton.classList.add('hidden'); // Hide new button initially
             nextChallengeButton.classList.add('hidden');
             restartButton.classList.add('hidden');
             feedbackMessage.textContent = '';
@@ -365,7 +369,8 @@
             challengeSection.classList.remove('hidden');
             startButton.classList.add('hidden');
             runCodeButton.classList.remove('hidden');
-            getHintButton.classList.remove('hidden'); // Show hint button during challenges
+            getHintButton.classList.remove('hidden');
+            checkMyCodeButton.classList.remove('hidden'); // Show new button during challenges
             displayChallenge(currentChallengeIndex);
         }
 
@@ -376,7 +381,8 @@
             codeInput.value = ''; // Clear previous code
             feedbackMessage.textContent = '';
             runCodeButton.disabled = false;
-            getHintButton.disabled = false; // Enable hint button
+            getHintButton.disabled = false;
+            checkMyCodeButton.disabled = false; // Enable new button
             nextChallengeButton.classList.add('hidden');
             runCodeButton.classList.remove('hidden');
         }
@@ -396,7 +402,8 @@
                 shipRepairProgress += (100 / totalChallenges); // Increase progress
                 drawShip(shipRepairProgress); // Update ship visual
                 runCodeButton.classList.add('hidden');
-                getHintButton.classList.add('hidden'); // Hide hint button on success
+                getHintButton.classList.add('hidden');
+                checkMyCodeButton.classList.add('hidden'); // Hide new button on success
                 nextChallengeButton.classList.remove('hidden');
                 nextChallengeButton.disabled = false;
             } else {
@@ -411,6 +418,7 @@
             feedbackMessage.textContent = 'טוען רמז חכם... ✨';
             feedbackMessage.style.color = '#FFD700'; // Gold for loading
             getHintButton.disabled = true; // Disable button while loading
+            checkMyCodeButton.disabled = true; // Disable other AI button
 
             const challenge = gameData.challenges[currentChallengeIndex];
             const prompt = `אתה מורה לפייתון ידידותי. תלמיד כיתה ט' מתקשה עם האתגר הבא: "${challenge.prompt}". הקונספט הנלמד הוא: "${challenge.concept}". תן רמז מועיל, אך אל תפתור את התשובה. התמקד בגישה לפתרון או בנקודות מפתח בקונספט.`;
@@ -445,6 +453,60 @@
                 feedbackMessage.style.color = '#FF4500';
             } finally {
                 getHintButton.disabled = false; // Re-enable button
+                checkMyCodeButton.disabled = false; // Re-enable other AI button
+            }
+        }
+
+        // New function to check user's code with Gemini
+        async function checkMyCodeWithGemini() {
+            const userCode = codeInput.value.trim();
+            if (!userCode) {
+                feedbackMessage.textContent = 'אנא כתבו קוד לפני הבדיקה.';
+                feedbackMessage.style.color = '#FF4500';
+                return;
+            }
+
+            feedbackMessage.textContent = 'בודק את הקוד שלך עם Gemini... ✨';
+            feedbackMessage.style.color = '#FFD700'; // Gold for loading
+            runCodeButton.disabled = true; // Disable other buttons
+            getHintButton.disabled = true;
+            checkMyCodeButton.disabled = true;
+
+            const challenge = gameData.challenges[currentChallengeIndex];
+            const prompt = `אתה מורה לפייתון ידידותי. תלמיד כיתה ט' ניסה לכתוב את הקוד הבא עבור האתגר: \`\`\`python\n${userCode}\n\`\`\`. האתגר הנוכחי הוא: "${challenge.prompt}". הקונספט המרכזי הוא: "${challenge.concept}". הקוד של התלמיד אינו נכון. הסבר בעדינות מה יכולה להיות הבעיה בקוד שלו, או תן הכוונה כללית לתיקון, מבלי לתת את הפתרון המלא. התייחס לכללי PEP 8 אם רלוונטי (לדוגמה, רווחים סביב אופרטורים או הזחות).`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Canvas will provide this API key at runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    feedbackMessage.textContent = `משוב על הקוד: ${text}`;
+                    feedbackMessage.style.color = '#E0FFFF'; // Light Cyan for feedback
+                } else {
+                    feedbackMessage.textContent = 'אופס! לא הצלחתי לנתח את הקוד כרגע. נסו שוב מאוחר יותר.';
+                    feedbackMessage.style.color = '#FF4500';
+                }
+            } catch (error) {
+                console.error('Error checking code with Gemini:', error);
+                feedbackMessage.textContent = 'שגיאה בבדיקת הקוד. אנא בדקו את חיבור האינטרנט שלכם.';
+                feedbackMessage.style.color = '#FF4500';
+            } finally {
+                runCodeButton.disabled = false; // Re-enable buttons
+                getHintButton.disabled = false;
+                checkMyCodeButton.disabled = false;
             }
         }
 
@@ -469,7 +531,8 @@
                 <p>אתם גיבורים אמיתיים של הגלקסיה!</p>
             `;
             runCodeButton.classList.add('hidden');
-            getHintButton.classList.add('hidden'); // Hide hint button at end
+            getHintButton.classList.add('hidden');
+            checkMyCodeButton.classList.add('hidden'); // Hide new button at end
             nextChallengeButton.classList.add('hidden');
             restartButton.classList.remove('hidden');
         }
@@ -479,7 +542,8 @@
             // This is handled by displayStory for sequential story progression
         });
         runCodeButton.addEventListener('click', checkCode);
-        getHintButton.addEventListener('click', getSmartHint); // Add event listener for hint button
+        getHintButton.addEventListener('click', getSmartHint);
+        checkMyCodeButton.addEventListener('click', checkMyCodeWithGemini); // Add event listener for new button
         nextChallengeButton.addEventListener('click', nextChallenge);
         restartButton.addEventListener('click', initGame);
 
@@ -489,5 +553,3 @@
     </script>
 </body>
 </html>
-
-
