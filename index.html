@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מסע הקידוד בחלל</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom CSS for cheerful space theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #8A2BE2, #4B0082); /* Violet to Indigo gradient */
+            color: #FFFFFF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent white */
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #FFD700; /* Gold */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        }
+
+        .game-section {
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #story-display, #challenge-prompt, #feedback-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #E0FFFF; /* Light Cyan */
+        }
+
+        #code-input {
+            background-color: #2D2D2D; /* Dark background for code */
+            color: #00FF00; /* Green text for code */
+            border: 1px solid #00FF00;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 1rem;
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            box-sizing: border-box;
+            direction: ltr; /* Ensure left-to-right typing for code */
+            text-align: left; /* Align text to the left */
+        }
+
+        .game-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .game-button {
+            background: linear-gradient(to right, #4CAF50, #8BC34A); /* Green gradient */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .game-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, #8BC34A, #4CAF50);
+        }
+
+        .game-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-button:disabled {
+            background: #6B7280; /* Gray for disabled */
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        canvas {
+            background-color: #0A0A2A; /* Dark space background */
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: block;
+            width: 100%;
+            height: 250px; /* Fixed height for visual consistency */
+            margin-bottom: 20px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            .game-header h1 {
+                font-size: 2rem;
+            }
+            #story-display, #challenge-prompt, #feedback-message {
+                font-size: 1rem;
+            }
+            .game-button {
+                padding: 10px 20px;
+                font-size: 1rem;
+            }
+            .game-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1>מסע הקידוד בחלל</h1>
+            <p>הצילו את חללית המחקר באמצעות קידוד פייתון!</p>
+        </div>
+
+        <div class="game-section" id="story-section">
+            <p id="story-display">טוען סיפור...</p>
+        </div>
+
+        <!-- Added label for the canvas -->
+        <div class="text-center text-lg font-bold text-yellow-300 mb-2">מצב החללית: תמונת מצב</div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="game-section hidden" id="challenge-section">
+            <p id="challenge-prompt"></p>
+            <textarea id="code-input" placeholder="כתבו את קוד הפייתון שלכם כאן..."></textarea>
+            <div id="feedback-message" class="mt-4 text-center font-bold"></div>
+        </div>
+
+        <div class="game-buttons">
+            <button id="startButton" class="game-button">התחילו את המסע!</button>
+            <button id="runCodeButton" class="game-button hidden">הריצו קוד</button>
+            <button id="getHintButton" class="game-button hidden">✨ קבלו רמז חכם</button>
+            <button id="nextChallengeButton" class="game-button hidden">האתגר הבא</button>
+            <button id="restartButton" class="game-button hidden">התחילו מחדש</button>
+        </div>
+    </div>
+
+    <script>
+        // Get references to HTML elements
+        const storyDisplay = document.getElementById('story-display');
+        const challengePrompt = document.getElementById('challenge-prompt');
+        const codeInput = document.getElementById('code-input');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const startButton = document.getElementById('startButton');
+        const runCodeButton = document.getElementById('runCodeButton');
+        const getHintButton = document.getElementById('getHintButton'); // New hint button
+        const nextChallengeButton = document.getElementById('nextChallengeButton');
+        const restartButton = document.getElementById('restartButton');
+        const storySection = document.getElementById('story-section');
+        const challengeSection = document.getElementById('challenge-section');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
+
+        // Game state variables
+        let currentChallengeIndex = 0;
+        let shipRepairProgress = 0; // 0-100, representing repair status
+        const totalChallenges = 5; // Total number of challenges
+
+        // Game data: Story and challenges
+        const gameData = {
+            story: [
+                "ברוכים הבאים, צוערים צעירים! שמי קפטן נובה, ואני זקוקה לעזרתכם הדחופה!",
+                "חללית המחקר שלנו, 'הכוכב הנודד', נפגעה מסופת אסטרואידים בלתי צפויה. המערכות שלה יצאו מכלל פעולה!",
+                "אתם, צוערים מבריקים עם ידע בפייתון, נבחרתם למשימה קריטית: לתקן את החללית באמצעות קידוד!",
+                "כל אתגר שתפתרו יתקן חלק אחר במערכות החללית. בואו נתחיל במשימה הראשונה: הפעלת מערכת הניווט!",
+            ],
+            challenges: [
+                {
+                    prompt: "מערכת הניווט דורשת הגדרת קואורדינטות. צרו משתנה בשם `x` והכניסו לתוכו את המספר `10`.",
+                    expectedCode: "x = 10",
+                    concept: "משתנים",
+                    successMessage: "מצוין! קואורדינטת ה-X הוגדרה. מערכת הניווט מתחילה להתייצב.",
+                    failMessage: "לא נכון. ודאו שיצרתם משתנה בשם `x` עם הערך `10`.",
+                    hint: "זכרו, כדי ליצור משתנה בפייתון משתמשים בסימן שווה: `שם_משתנה = ערך`. חשוב להקפיד על רווחים סביב סימן השווה, לדוגמה: `x = 10`."
+                },
+                {
+                    prompt: "מערכת הדלק צריכה לוודא שיש מספיק דלק למסע. אם כמות הדלק (`fuel_level`) גדולה מ-`50`, הדפיסו 'מספיק דלק'. אחרת, הדפיסו 'דלק נמוך!'. נסו עם `fuel_level = 70`.",
+                    expectedCode: "fuel_level = 70\nif fuel_level > 50:\n    print('מספיק דלק')\nelse:\n    print('דלק נמוך!')",
+                    concept: "תנאים (if/else)",
+                    successMessage: "מערכת הדלק מאושרת! עברתם את בדיקת הדלק בהצלחה.",
+                    failMessage: "בדקו את תנאי ה-`if` וה-`else`. ודאו שההדפסה נכונה.",
+                    hint: "שימו לב לכתיב הנכון של `if`, `else` ולחשיבות ההזחה (indentation) לפני הפקודות בתוך הבלוק. הקפידו על רווחים סביב אופרטורים כמו `>` ו-`=`, לדוגמה: `fuel_level > 50`."
+                },
+                {
+                    prompt: "מערכת החמצן דורשת בדיקה של 5 מיכלים. השתמשו בלולאת `for` כדי להדפיס את המספרים מ-1 עד 5 (כולל).",
+                    expectedCode: "for i in range(1, 6):\n    print(i)",
+                    concept: "לולאות (for)",
+                    successMessage: "מערכת החמצן תוקנה! כל המיכלים נבדקו.",
+                    failMessage: "הלולאה לא הדפיסה את כל המספרים כראוי. ודאו שהטווח נכון.",
+                    hint: "זכרו שהפקודות בתוך לולאת `for` חייבות להיות מוזחות (indentation) פנימה. הפונקציה `range(start, stop)` יוצרת סדרה עד `stop-1`. הקפידו על רווחים סביב אופרטורים."
+                },
+                {
+                    prompt: "מערכת התקשורת זקוקה לפונקציה שתשלח הודעות. צרו פונקציה בשם `send_message` שמקבלת ארגומנט `message` ומדפיסה אותו. קראו לפונקציה עם ההודעה 'הודעה נשלחה בהצלחה!'.",
+                    expectedCode: "def send_message(message):\n    print(message)\nsend_message('הודעה נשלחה בהצלחה!')",
+                    concept: "פונקציות",
+                    successMessage: "פונקציית התקשורת הופעלה! אנחנו שוב מחוברים לבסיס.",
+                    failMessage: "הפונקציה לא הוגדרה או נקראה נכון. ודאו את השם והארגומנטים.",
+                    hint: "זכרו את מילת המפתח `def` כדי להגדיר פונקציה. הקפידו על רווחים סביב אופרטורים."
+                },
+                {
+                    prompt: "מערכת המלאי זקוקה לרשימה של פריטים חיוניים. צרו רשימה בשם `inventory` המכילה את הפריטים: `'מפתח ברגים'`, `'סוללה'`, `'כבל'`.",
+                    expectedCode: "inventory = ['מפתח ברגים', 'סוללה', 'כבל']",
+                    concept: "רשימות (Lists)",
+                    successMessage: "מערכת המלאי מסודרת! החללית מוכנה לטיסה!",
+                    failMessage: "הרשימה לא נוצרה כראוי. ודאו את השם והפריטים.",
+                    hint: "רשימות בפייתון נכתבות בתוך סוגריים מרובעים `[]`. הקפידו על רווחים סביב אופרטורים."
+                }
+            ]
+        };
+
+        // Canvas drawing functions
+        function drawShip(progress) {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height); // Clear canvas
+
+            // Draw stars in the background
+            for (let i = 0; i < 50; i++) {
+                ctx.fillStyle = 'rgba(255, 255, 255, ' + (Math.random() * 0.8 + 0.2) + ')';
+                ctx.beginPath();
+                ctx.arc(Math.random() * gameCanvas.width, Math.random() * gameCanvas.height, Math.random() * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw spaceship body (main part)
+            ctx.fillStyle = '#A0A0A0'; // Grey
+            ctx.beginPath();
+            ctx.ellipse(gameCanvas.width / 2, gameCanvas.height / 2, 80, 40, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#606060';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw cockpit
+            ctx.fillStyle = '#87CEEB'; // Sky Blue
+            ctx.beginPath();
+            ctx.arc(gameCanvas.width / 2 + 60, gameCanvas.height / 2, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#4682B4';
+            ctx.stroke();
+
+            // Draw wings/fins
+            ctx.fillStyle = '#C0C0C0'; // Silver
+            ctx.beginPath();
+            ctx.moveTo(gameCanvas.width / 2 - 60, gameCanvas.height / 2 - 30);
+            ctx.lineTo(gameCanvas.width / 2 - 100, gameCanvas.height / 2 - 50);
+            ctx.lineTo(gameCanvas.width / 2 - 100, gameCanvas.height / 2 + 50);
+            ctx.lineTo(gameCanvas.width / 2 - 60, gameCanvas.height / 2 + 30);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw engine (back)
+            ctx.fillStyle = '#FF4500'; // Orange Red
+            ctx.beginPath();
+            ctx.arc(gameCanvas.width / 2 - 70, gameCanvas.height / 2, 20, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#B22222';
+            ctx.stroke();
+
+            // Repair indicators based on progress
+            const segmentAngle = (Math.PI * 2) / totalChallenges;
+            for (let i = 0; i < totalChallenges; i++) {
+                if (i < progress / (100 / totalChallenges)) {
+                    ctx.fillStyle = '#00FF00'; // Green for repaired
+                } else {
+                    ctx.fillStyle = '#FF0000'; // Red for damaged
+                }
+                ctx.beginPath();
+                ctx.arc(gameCanvas.width / 2 + 30 * Math.cos(i * segmentAngle),
+                        gameCanvas.height / 2 + 30 * Math.sin(i * segmentAngle),
+                        5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Text for repair status
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(`תיקון: ${Math.round(progress)}%`, gameCanvas.width / 2, gameCanvas.height - 20);
+        }
+
+        // Initialize game
+        function initGame() {
+            currentChallengeIndex = 0;
+            shipRepairProgress = 0;
+            storySection.classList.remove('hidden');
+            challengeSection.classList.add('hidden');
+            startButton.classList.remove('hidden');
+            runCodeButton.classList.add('hidden');
+            getHintButton.classList.add('hidden'); // Hide hint button initially
+            nextChallengeButton.classList.add('hidden');
+            restartButton.classList.add('hidden');
+            feedbackMessage.textContent = '';
+            codeInput.value = '';
+            displayStory(0); // Start with the first story segment
+            drawShip(shipRepairProgress); // Draw initial damaged ship
+            gameCanvas.width = gameCanvas.offsetWidth; // Set canvas width to its display width
+            gameCanvas.height = gameCanvas.offsetHeight; // Set canvas height to its display height
+            window.addEventListener('resize', () => {
+                gameCanvas.width = gameCanvas.offsetWidth;
+                gameCanvas.height = gameCanvas.offsetHeight;
+                drawShip(shipRepairProgress);
+            });
+        }
+
+        // Display story segments
+        let currentStorySegment = 0;
+        function displayStory(segmentIndex) {
+            storyDisplay.textContent = gameData.story[segmentIndex];
+            if (segmentIndex < gameData.story.length - 1) {
+                startButton.textContent = 'הבא';
+                startButton.onclick = () => displayStory(segmentIndex + 1);
+            } else {
+                startButton.textContent = 'התחילו את האתגר!';
+                startButton.onclick = startChallenge;
+            }
+        }
+
+        // Start the first challenge
+        function startChallenge() {
+            storySection.classList.add('hidden');
+            challengeSection.classList.remove('hidden');
+            startButton.classList.add('hidden');
+            runCodeButton.classList.remove('hidden');
+            getHintButton.classList.remove('hidden'); // Show hint button during challenges
+            displayChallenge(currentChallengeIndex);
+        }
+
+        // Display a specific challenge
+        function displayChallenge(index) {
+            const challenge = gameData.challenges[index];
+            challengePrompt.innerHTML = `<strong>אתגר ${index + 1}: ${challenge.concept}</strong><br>${challenge.prompt}`;
+            codeInput.value = ''; // Clear previous code
+            feedbackMessage.textContent = '';
+            runCodeButton.disabled = false;
+            getHintButton.disabled = false; // Enable hint button
+            nextChallengeButton.classList.add('hidden');
+            runCodeButton.classList.remove('hidden');
+        }
+
+        // Check user's code (simplified simulation)
+        function checkCode() {
+            const userCode = codeInput.value.trim();
+            const challenge = gameData.challenges[currentChallengeIndex];
+
+            // Normalize expected code for comparison (remove extra spaces/newlines)
+            const normalizedExpected = challenge.expectedCode.replace(/\s+/g, ' ').trim();
+            const normalizedUserCode = userCode.replace(/\s+/g, ' ').trim();
+
+            if (normalizedUserCode === normalizedExpected) {
+                feedbackMessage.textContent = challenge.successMessage;
+                feedbackMessage.style.color = '#00FF00'; // Green
+                shipRepairProgress += (100 / totalChallenges); // Increase progress
+                drawShip(shipRepairProgress); // Update ship visual
+                runCodeButton.classList.add('hidden');
+                getHintButton.classList.add('hidden'); // Hide hint button on success
+                nextChallengeButton.classList.remove('hidden');
+                nextChallengeButton.disabled = false;
+            } else {
+                feedbackMessage.textContent = `${challenge.failMessage} רמז: ${challenge.hint}`;
+                feedbackMessage.style.color = '#FF4500'; // Orange Red
+                runCodeButton.disabled = false; // Allow retrying
+            }
+        }
+
+        // Function to get a smart hint from Gemini API
+        async function getSmartHint() {
+            feedbackMessage.textContent = 'טוען רמז חכם... ✨';
+            feedbackMessage.style.color = '#FFD700'; // Gold for loading
+            getHintButton.disabled = true; // Disable button while loading
+
+            const challenge = gameData.challenges[currentChallengeIndex];
+            const prompt = `אתה מורה לפייתון ידידותי. תלמיד כיתה ט' מתקשה עם האתגר הבא: "${challenge.prompt}". הקונספט הנלמד הוא: "${challenge.concept}". תן רמז מועיל, אך אל תפתור את התשובה. התמקד בגישה לפתרון או בנקודות מפתח בקונספט.`;
+
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = ""; // Canvas will provide this API key at runtime
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    feedbackMessage.textContent = `רמז חכם: ${text}`;
+                    feedbackMessage.style.color = '#E0FFFF'; // Light Cyan for hint
+                } else {
+                    feedbackMessage.textContent = 'אופס! לא הצלחתי להביא רמז חכם כרגע. נסו שוב מאוחר יותר.';
+                    feedbackMessage.style.color = '#FF4500';
+                }
+            } catch (error) {
+                console.error('Error fetching smart hint:', error);
+                feedbackMessage.textContent = 'שגיאה בטעינת הרמז. אנא בדקו את חיבור האינטרנט שלכם.';
+                feedbackMessage.style.color = '#FF4500';
+            } finally {
+                getHintButton.disabled = false; // Re-enable button
+            }
+        }
+
+        // Move to the next challenge or end the game
+        function nextChallenge() {
+            currentChallengeIndex++;
+            if (currentChallengeIndex < gameData.challenges.length) {
+                displayChallenge(currentChallengeIndex);
+            } else {
+                endGame();
+            }
+        }
+
+        // End of game sequence
+        function endGame() {
+            challengeSection.classList.add('hidden');
+            storySection.classList.remove('hidden');
+            storyDisplay.innerHTML = `
+                <p><strong>מזל טוב, צוערים!</strong></p>
+                <p>הצלחתם לתקן את כל מערכות 'הכוכב הנודד'!</p>
+                <p>החללית מוכנה שוב לצאת למסע בחלל, והכל בזכות כישורי הקידוד המדהימים שלכם בפייתון!</p>
+                <p>אתם גיבורים אמיתיים של הגלקסיה!</p>
+            `;
+            runCodeButton.classList.add('hidden');
+            getHintButton.classList.add('hidden'); // Hide hint button at end
+            nextChallengeButton.classList.add('hidden');
+            restartButton.classList.remove('hidden');
+        }
+
+        // Event Listeners
+        startButton.addEventListener('click', () => {
+            // This is handled by displayStory for sequential story progression
+        });
+        runCodeButton.addEventListener('click', checkCode);
+        getHintButton.addEventListener('click', getSmartHint); // Add event listener for hint button
+        nextChallengeButton.addEventListener('click', nextChallenge);
+        restartButton.addEventListener('click', initGame);
+
+        // Initial call to set up the game when the window loads
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
+
+
